@@ -1,45 +1,45 @@
 #!/usr/bin/env node
 
-const { execSync } = require('child_process');
-const yargs = require('yargs/yargs');
-const { hideBin } = require('yargs/helpers');
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
-const inquirer = require('inquirer');
-const simpleGit = require('simple-git');
+const { execSync } = require("child_process");
+const yargs = require("yargs/yargs");
+const { hideBin } = require("yargs/helpers");
+const fs = require("fs");
+const path = require("path");
+const os = require("os");
+const inquirer = require("inquirer");
+const simpleGit = require("simple-git");
 
 const git = simpleGit();
 
-const CONFIG_FILE = path.join(os.homedir(), '.git-toolbelt-config.json');
+const CONFIG_FILE = path.join(os.homedir(), ".git-toolbelt-config.json");
 
 // Load config
 function loadConfig() {
   if (fs.existsSync(CONFIG_FILE)) {
-    return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+    return JSON.parse(fs.readFileSync(CONFIG_FILE, "utf8"));
   }
   return {};
 }
 
 // Save config
 function saveConfig(config) {
-  fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), 'utf8');
+  fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), "utf8");
 }
 
 // Initial setup
 async function setupConfig() {
-  console.log('🛠️ Git Toolbelt initial setup:');
+  console.log("🛠️ Git Toolbelt initial setup:");
   const answers = await inquirer.prompt([
     {
-      name: 'baseBranch',
-      message: '🔧 Default base branch (e.g. main, master, develop):',
-      default: 'main',
+      name: "baseBranch",
+      message: "🔧 Default base branch (e.g. main, master, develop):",
+      default: "main",
     },
     {
-      name: 'gitProvider',
-      type: 'list',
-      message: '🌐 Which Git provider do you use?',
-      choices: ['github', 'gitlab', 'bitbucket'],
+      name: "gitProvider",
+      type: "list",
+      message: "🌐 Which Git provider do you use?",
+      choices: ["github", "gitlab", "bitbucket"],
     },
   ]);
   saveConfig(answers);
@@ -50,40 +50,50 @@ async function setupConfig() {
 function resetConfig() {
   if (fs.existsSync(CONFIG_FILE)) {
     fs.unlinkSync(CONFIG_FILE);
-    console.log('🔄 Configuration reset.');
+    console.log("🔄 Configuration reset.");
   } else {
-    console.log('⚠️ No configuration found to reset.');
+    console.log("⚠️ No configuration found to reset.");
   }
 }
 
 // Exec helper
 function exec(cmd) {
-  return execSync(cmd, { stdio: 'inherit' });
+  return execSync(cmd, { stdio: "inherit" });
 }
 
 // Validate Git repo
 function validateGitRepo() {
   try {
-    execSync('git rev-parse --is-inside-work-tree', { stdio: 'ignore' });
+    execSync("git rev-parse --is-inside-work-tree", { stdio: "ignore" });
   } catch {
-    console.error('❌ Not inside a Git repository.');
+    console.error("❌ Not inside a Git repository.");
     process.exit(1);
   }
 }
 
 // Squash commits
 async function performSquash(forcePushFlag, baseBranch) {
-  const branch = (await git.revparse(['--abbrev-ref', 'HEAD'])).trim();
-  console.log(`\n🔨 Squashing commits on branch: ${branch} (base: ${baseBranch})`);
+  const branch = (await git.revparse(["--abbrev-ref", "HEAD"])).trim();
+  console.log(
+    `\n🔨 Squashing commits on branch: ${branch} (base: ${baseBranch})`
+  );
 
   await exec(`git reset --soft ${baseBranch}`);
+  const status = execSync("git status --porcelain").toString().trim();
+
+  if (!status) {
+    console.log("⚠️ Nothing to commit after squash. Working tree is clean.");
+    return;
+  }
+
   const { commitMessage } = await inquirer.prompt([
     {
-      name: 'commitMessage',
-      message: '📝 Enter new commit message:',
-      validate: msg => !!msg || 'Message cannot be empty',
+      name: "commitMessage",
+      message: "📝 Enter new commit message:",
+      validate: (msg) => !!msg || "Message cannot be empty",
     },
   ]);
+
   await exec(`git commit -m "${commitMessage}"`);
 
   if (forcePushFlag) {
@@ -92,9 +102,9 @@ async function performSquash(forcePushFlag, baseBranch) {
   } else {
     const { confirmPush } = await inquirer.prompt([
       {
-        type: 'confirm',
-        name: 'confirmPush',
-        message: '❓ Do you want to force-push the changes to remote?',
+        type: "confirm",
+        name: "confirmPush",
+        message: "❓ Do you want to force-push the changes to remote?",
         default: false,
       },
     ]);
@@ -102,33 +112,33 @@ async function performSquash(forcePushFlag, baseBranch) {
       await exec(`git push --force`);
       console.log(`🚀 Changes force-pushed to ${branch}`);
     } else {
-      console.log('🛑 Skipped pushing changes. Don’t forget to push manually.');
+      console.log("🛑 Skipped pushing changes. Don’t forget to push manually.");
     }
   }
 }
 
 // Create PR
 async function createPR(targetBranch, gitProvider) {
-  const branch = (await git.revparse(['--abbrev-ref', 'HEAD'])).trim();
-  const remoteUrl = (await git.remote(['get-url', 'origin'])).trim();
+  const branch = (await git.revparse(["--abbrev-ref", "HEAD"])).trim();
+  const remoteUrl = (await git.remote(["get-url", "origin"])).trim();
 
   const repoMatch = remoteUrl.match(/[:/]([^/]+\/[^/.]+)(\.git)?$/);
   const repo = repoMatch ? repoMatch[1] : null;
 
   if (!repo) {
-    console.error('❌ Unable to parse repository name from remote URL.');
+    console.error("❌ Unable to parse repository name from remote URL.");
     return;
   }
 
   let prUrl;
   switch (gitProvider) {
-    case 'github':
+    case "github":
       prUrl = `https://github.com/${repo}/compare/${targetBranch}...${branch}?expand=1`;
       break;
-    case 'gitlab':
+    case "gitlab":
       prUrl = `https://gitlab.com/${repo}/-/merge_requests/new?merge_request[source_branch]=${branch}&merge_request[target_branch]=${targetBranch}`;
       break;
-    case 'bitbucket':
+    case "bitbucket":
       prUrl = `https://bitbucket.org/${repo}/pull-requests/new?source=${branch}&dest=${targetBranch}`;
       break;
   }
@@ -137,33 +147,32 @@ async function createPR(targetBranch, gitProvider) {
   try {
     exec(`open "${prUrl}" || xdg-open "${prUrl}" || start "" "${prUrl}"`);
   } catch (err) {
-    console.error('❌ Failed to open browser. Here is the PR link:\n' + prUrl);
+    console.error("❌ Failed to open browser. Here is the PR link:\n" + prUrl);
   }
 }
 
 // CLI entry
 (async () => {
   const argv = yargs(hideBin(process.argv))
-    .usage('💼 Git Toolbelt\n\nUsage:\n  $0 [options]')
-    .option('squash', {
-      type: 'boolean',
-      description: 'Squash all commits on current branch',
+    .usage("💼 Git Toolbelt\n\nUsage:\n  $0 [options]")
+    .option("squash", {
+      type: "boolean",
+      description: "Squash all commits on current branch",
     })
-    .option('force-push', {
-      type: 'boolean',
-      description: 'Force push after squash without prompt',
+    .option("force-push", {
+      type: "boolean",
+      description: "Force push after squash without prompt",
     })
-    .option('create-pr', {
-      type: 'string',
-      description: 'Create a PR to the given target branch',
+    .option("create-pr", {
+      type: "string",
+      description: "Create a PR to the given target branch",
     })
-    .option('reset', {
-      type: 'boolean',
-      description: 'Reset all stored configuration',
+    .option("reset", {
+      type: "boolean",
+      description: "Reset all stored configuration",
     })
     .help()
-    .alias('h', 'help')
-    .argv;
+    .alias("h", "help").argv;
 
   if (argv.reset) {
     resetConfig();
@@ -178,19 +187,19 @@ async function createPR(targetBranch, gitProvider) {
   }
 
   if (argv.squash) {
-    await performSquash(argv['force-push'], config.baseBranch);
+    await performSquash(argv["force-push"], config.baseBranch);
   }
 
-  if (argv['create-pr']) {
-    await createPR(argv['create-pr'], config.gitProvider);
+  if (argv["create-pr"]) {
+    await createPR(argv["create-pr"], config.gitProvider);
   }
 
-    if (!argv.squash && !argv['create-pr']) { // if any arguments were provided in future, this should be updated.
+  if (!argv.squash && !argv["create-pr"]) {
+    // if any arguments were provided in future, this should be updated.
     if (!config.baseBranch || !config.gitProvider) {
-      config = await setupConfig(); 
+      config = await setupConfig();
     } else {
-      console.log('🤔 No valid operation specified. Use --help for usage.');
+      console.log("🤔 No valid operation specified. Use --help for usage.");
     }
   }
-
 })();
