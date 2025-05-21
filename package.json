@@ -1,16 +1,20 @@
 {
   "name": "gitman",
-  "version": "1.0.0",
+  "type": "module",
   "description": "A CLI for advanced Git tasks like squashing and PR creation",
   "bin": {
-    "gitman": "./gitman.js"
+    "gitman": "./bin/cli.js"
+  },
+  "scripts": {
+    "start": "node ./bin/cli.js",
+    "dev": "nodemon ./bin/cli.js"
   },
   "dependencies": {
-    "inquirer": "8.2.6",
-    "simple-git": "3.22.0",
-    "yargs": "17.7.2"
+    "inquirer": "^9.0.0",
+    "simple-git": "^3.16.0",
+    "yargs": "^17.7.2"
   },
-  "keywords": [
+   "keywords": [
     "git",
     "cli",
     "toolbelt",
