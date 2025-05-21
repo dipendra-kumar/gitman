@@ -1,14 +1,14 @@
 {
-  "name": "git-toolbelt",
+  "name": "gitman",
   "version": "1.0.0",
   "description": "A CLI for advanced Git tasks like squashing and PR creation",
   "bin": {
-    "git-toolbelt": "./git-toolbelt.js"
+    "gitman": "./gitman.js"
   },
   "dependencies": {
-    "inquirer": "^9.0.0",
-    "simple-git": "^3.22.0",
-    "yargs": "^17.7.2"
+    "inquirer": "8.2.6",
+    "simple-git": "3.22.0",
+    "yargs": "17.7.2"
   },
   "keywords": [
     "git",

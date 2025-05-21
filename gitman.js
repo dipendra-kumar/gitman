@@ -185,7 +185,12 @@ async function createPR(targetBranch, gitProvider) {
     await createPR(argv['create-pr'], config.gitProvider);
   }
 
-  if (!argv.squash && !argv['create-pr']) {
-    console.log('🤔 No valid operation specified. Use --help for usage.');
+    if (!argv.squash && !argv['create-pr']) { // if any arguments were provided in future, this should be updated.
+    if (!config.baseBranch || !config.gitProvider) {
+      config = await setupConfig(); 
+    } else {
+      console.log('🤔 No valid operation specified. Use --help for usage.');
+    }
   }
+
 })();
